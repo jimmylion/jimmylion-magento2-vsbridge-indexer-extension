@@ -92,8 +92,8 @@ class ConfigurableDataExtender {
 
                 if(!empty($indexDataItem['color'])){
                     $attributeCode = 'color';
-                    $clones[$cloneId]['clone_color_id'] = $indexDataItem['color'];
-                    $clones[$cloneId]['sku'] = $indexDataItem['sku'].'-'.$indexDataItem['color'];
+                    $clones[$cloneId]['clone_color_id'] = isset($indexDataItem['color']) ? $indexDataItem['color'] : $indexDataItem['configurable_children'][0]['color'];
+                    $clones[$cloneId]['sku'] = $indexDataItem['sku'].'-'.$clones[$cloneId]['clone_color_id'];
                     $clones[$cloneId]['clone_color_label'] = $this->loadOptionLabelById->execute($attributeCode, $clones[$cloneId]['clone_color_id'], $storeId);
                     $clone_color = strtolower(str_ireplace(' ', '-', $clones[$cloneId]['clone_color_label']));
                     $clones[$cloneId]['is_clone'] = 1; // there is no difference now
