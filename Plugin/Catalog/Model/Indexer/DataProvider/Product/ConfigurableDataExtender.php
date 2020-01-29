@@ -2,6 +2,7 @@
 
 namespace CodingMice\VsBridgeIndexerExtension\Plugin\Catalog\Model\Indexer\DataProvider\Product;
 
+use Divante\VsbridgeIndexerCatalog\Model\Attribute\LoadOptionLabelById;
 use Divante\VsbridgeIndexerCatalog\Model\ResourceModel\Product\Category as CategoryResource;
 use Divante\VsbridgeIndexerCatalog\Model\Indexer\DataProvider\Product\ConfigurableData;
 use Divante\VsbridgeIndexerCatalog\Model\Indexer\DataProvider\Product\MediaGalleryData;
@@ -26,6 +27,9 @@ class ConfigurableDataExtender {
     /* @var CategoryResource $categoryResource */
     private $categoryResource;
 
+    /* @var LoadOptionLabelById $loadOptionLabelById */
+    private $loadOptionLabelById;
+
     /* variable to cache locale for each store */
     private $storeLocales = [];
 
@@ -41,6 +45,7 @@ class ConfigurableDataExtender {
         $objectManager = ObjectManager::getInstance();
         /* @var \Divante\VsbridgeIndexerCore\Index\IndexOperations $indexOperations */
         $this->categoryResource = $objectManager->create("Divante\VsbridgeIndexerCatalog\Model\ResourceModel\Product\Category");
+        $this->loadOptionLabelById = $objectManager->create("Divante\VsbridgeIndexerCatalog\Model\Attribute\LoadOptionLabelById");
 
         $docs = $this->addHreflangUrls($docs);
 
@@ -86,13 +91,18 @@ class ConfigurableDataExtender {
                 $clones[$cloneId] = $indexDataItem;
 
                 if(!empty($indexDataItem['color'])){
+                    $attributeCode = 'color';
                     $clones[$cloneId]['clone_color_id'] = $indexDataItem['color'];
                     $clones[$cloneId]['sku'] = $indexDataItem['sku'].'-'.$indexDataItem['color'];
+                    $clones[$cloneId]['clone_color_label'] = $this->loadOptionLabelById->execute($attributeCode, $clones[$cloneId]['clone_color_id'], $storeId);
+                    $clone_color = strtolower(str_ireplace(' ', '-', $clones[$cloneId]['clone_color_label']));
+                    $clones[$cloneId]['is_clone'] = 1; // there is no difference now
+                    $clones[$cloneId]['url_key'] = $indexDataItem['url_key'].'?color='.$clone_color;
+                    $clones[$cloneId]['clone_name'] = $indexDataItem['name'].' '.$clones[$cloneId]['clone_color_label'];
                 } else {
                     $clones[$cloneId]['sku'] = $indexDataItem['sku'];
                 }
 
-                $clones[$cloneId]['is_clone'] = 2;
 
             } else {
                 if(!empty($colors)){
