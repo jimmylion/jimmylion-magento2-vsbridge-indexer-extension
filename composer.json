@@ -1,0 +1,40 @@
+{
+  "name": "coding-mice/magento2-vsbridge-indexer-extension",
+  "type": "magento2-component",
+  "license": "MIT",
+  "authors": [{
+    "name": "Jan Myszkier",
+    "email": "jan@codingmice.com"
+  }],
+  "version": "0.0.1",
+  "keywords": [
+    "magento",
+    "magento2",
+    "vuestorefront"
+  ],
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://repo.magento.com/"
+    }
+  ],
+  "require": {
+    "php": ">=7.2.0",
+    "magento/framework": ">=101.0.0",
+    "magento/module-store": ">=100.2.0",
+    "magento/module-backend": ">=100.2.0",
+    "magento/module-catalog": ">=102.0.0",
+    "magento/magento-composer-installer": "*",
+    "elasticsearch/elasticsearch": "~5.1|~6.1"
+  },
+  "autoload": {
+    "files": [
+      "registration.php"
+    ],
+    "psr-4": {
+      "CodingMice\\VsBridgeIndexerExtension\\": ""
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}

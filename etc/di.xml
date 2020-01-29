@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Divante\VsbridgeIndexerCatalog\Model\Indexer\DataProvider\Product\ConfigurableData">
+        <plugin name="addCustomDataToVueSFCatalogProductIndex"
+                type="CodingMice\VsBridgeIndexerExtension\Plugin\Catalog\Model\Indexer\DataProvider\Product\ConfigurableDataExtender" />
+    </type>
+    <type name="Divante\VsbridgeIndexerCatalog\Model\Indexer\DataProvider\Category\AttributeData">
+        <plugin name="addCustomDataToVueSFCatalogCategoryIndex"
+                type="CodingMice\VsBridgeIndexerExtension\Plugin\Catalog\Model\Indexer\DataProvider\Category\AttributeDataExtender" />
+    </type>
+</config>
