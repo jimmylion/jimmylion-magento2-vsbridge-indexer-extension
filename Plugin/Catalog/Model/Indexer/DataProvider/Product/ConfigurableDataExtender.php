@@ -11,7 +11,6 @@ use Divante\VsbridgeIndexerCore\Console\Command\RebuildEsIndexCommand;
 use Divante\VsbridgeIndexerCore\Config\IndicesSettings;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\CatalogUrlRewrite\Model\ProductUrlPathGenerator;
-use Magento\Framework\App\ObjectManager;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Store\Api\Data\StoreInterface;
 
@@ -19,20 +18,47 @@ use Magento\Store\Api\Data\StoreInterface;
 class ConfigurableDataExtender {
 
     public $storeId;
+    
+    /* @var CategoryResource $categoryResource */
+    private $categoryResource;
+
+    /* @var LoadOptionById $loadOptionById */
+    private $loadOptionById;
+
+    /* variable to cache locale for each store */
+    private $storeLocales = [];
+    
+    private $storeManager;
+    private $indexOperations;
+    private $websiteManager;
+    private $productRepository;
+    private $urlPathGenerator;
+    private $scopeConfig;
+    
+    public function __construct( 
+            \Divante\VsbridgeIndexerCatalog\Model\ResourceModel\Product\Category $categoryResource,
+            \Divante\VsbridgeIndexerCatalog\Model\Attribute\LoadOptionById $loadOptionById,
+            \Divante\VsbridgeIndexerCore\Index\IndexOperations $indexOperations,
+            \Magento\Store\Model\StoreManagerInterface $storeManager,
+            \Magento\Store\Model\Website $websiteManager,
+            ProductRepositoryInterface $productRepository,
+            ProductUrlPathGenerator $urlPathGenerator,
+            \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+    ){
+        $this->categoryResource = $categoryResource;
+        $this->loadOptionById = $loadOptionById;
+        $this->indexOperations = $indexOperations;
+        $this->storeManager = $storeManager;
+        $this->websiteManager = $websiteManager;
+        $this->productRepository = $productRepository;
+        $this->urlPathGenerator = $urlPathGenerator;
+        $this->scopeConfig = $scopeConfig;
+
+    }
 
     public function beforeAddData(ConfigurableData $subject, $docs, $storeId){
         $this->storeId = $storeId;
     }
-
-    /* @var CategoryResource $categoryResource */
-    private $categoryResource;
-
-    /* @var LoadOptionLabelById $loadOptionLabelById */
-    private $loadOptionLabelById;
-
-    /* variable to cache locale for each store */
-    private $storeLocales = [];
-
     /**
      * This method will take ES docs prepared by Divante Extension and modify them
      * before they are added to ES in \Divante\VsbridgeIndexerCore\Indexer\GenericIndexerHandler::saveIndex
@@ -41,18 +67,13 @@ class ConfigurableDataExtender {
     public function afterAddData(ConfigurableData $subject, $docs){
         $storeId = $this->storeId;
         $docs = $this->extendDataWithGallery($subject, $docs,$storeId);
-
-        $objectManager = ObjectManager::getInstance();
-        /* @var \Divante\VsbridgeIndexerCore\Index\IndexOperations $indexOperations */
-        $this->categoryResource = $objectManager->create("Divante\VsbridgeIndexerCatalog\Model\ResourceModel\Product\Category");
-        $this->loadOptionLabelById = $objectManager->create("Divante\VsbridgeIndexerCatalog\Model\Attribute\LoadOptionLabelById");
-
+            
         $docs = $this->addHreflangUrls($docs);
-
+        
         $docs = $this->cloneConfigurableColors($docs,$storeId);
-
+        
         $docs = $this->extendDataWithCategoryNew($docs,$storeId);
-
+        
         return $docs;
     }
 
@@ -94,7 +115,7 @@ class ConfigurableDataExtender {
                     $attributeCode = 'color';
                     $clones[$cloneId]['clone_color_id'] = isset($indexDataItem['color']) ? $indexDataItem['color'] : $indexDataItem['configurable_children'][0]['color'];
                     $clones[$cloneId]['sku'] = $indexDataItem['sku'].'-'.$clones[$cloneId]['clone_color_id'];
-                    $clones[$cloneId]['clone_color_label'] = $this->loadOptionLabelById->execute($attributeCode, $clones[$cloneId]['clone_color_id'], $storeId);
+                    $clones[$cloneId]['clone_color_label'] = $this->loadOptionById->execute($attributeCode, $clones[$cloneId]['clone_color_id'], $storeId);
                     $clone_color = strtolower(str_ireplace(' ', '-', $clones[$cloneId]['clone_color_label']));
                     $clones[$cloneId]['is_clone'] = 1; // there is no difference now
                     $clones[$cloneId]['url_key'] = $indexDataItem['url_key'].'?color='.$clone_color;
@@ -149,10 +170,8 @@ class ConfigurableDataExtender {
 
     private function extendDataWithGallery(\Divante\VsbridgeIndexerCatalog\Model\Indexer\DataProvider\Product\ConfigurableData $subject, $docs,$storeId)
     {
-        $objectManager =  \Magento\Framework\App\ObjectManager::getInstance();
-        $storeManager = $objectManager->create("Magento\Store\Model\StoreManagerInterface");
-        /* @var StoreManagerInterface $storeManager */
-        $store = $storeManager->getStore($storeId);
+
+        $store = $this->storeManager->getStore($storeId);
         $index = $this->getIndex($store);
         $type = $index->getType('product');
 
@@ -345,14 +364,10 @@ class ConfigurableDataExtender {
     private function getIndex(StoreInterface $store)
     {
 
-        $objectManager = ObjectManager::getInstance();
-        /* @var \Divante\VsbridgeIndexerCore\Index\IndexOperations $indexOperations */
-        $indexOperations = $objectManager->create("Divante\VsbridgeIndexerCore\Index\IndexOperations");
-
         try {
-            $index = $indexOperations->getIndexByName(RebuildEsIndexCommand::INDEX_IDENTIFIER, $store);
+            $index = $this->indexOperations->getIndexByName(RebuildEsIndexCommand::INDEX_IDENTIFIER, $store);
         } catch (\Exception $e) {
-            $index = $indexOperations->createIndex(RebuildEsIndexCommand::INDEX_IDENTIFIER, $store);
+            $index = $this->indexOperations->createIndex(RebuildEsIndexCommand::INDEX_IDENTIFIER, $store);
         }
 
         return $index;
@@ -374,16 +389,8 @@ class ConfigurableDataExtender {
 
     private function addHreflangUrls($indexData)
     {
-        $objectManager = ObjectManager::getInstance();
-        $storeManager = $objectManager->create("\Magento\Store\Model\StoreManager");
-        $stores = $storeManager->getStores();
-        $websiteManager = $objectManager->create("\Magento\Store\Model\Website");
-
-        $productRepository = $objectManager->create(ProductRepositoryInterface::class);
-        $productRewrites = $objectManager->create(ProductUrlPathGenerator::class);
-
-        $configReader = $objectManager->create(\Magento\Framework\App\Config\ScopeConfigInterface::class);
-
+        $stores = $this->storeManager->getStores();
+        
         foreach ($indexData as $product_id => $indexDataItem) {
             $hrefLangs = [];
             if ($indexData[$product_id]['type_id'] == 'simple') {
@@ -392,18 +399,18 @@ class ConfigurableDataExtender {
 
             foreach($stores as $store){
                 try {
-                    $product = $productRepository->get($indexData[$product_id]['sku'], false, $store->getId());
+                    $product = $this->productRepository->get($indexData[$product_id]['sku'], false, $store->getId());
 
                     /* @TODO: once approved, move out of this loop */
                     if (!isset($this->storeLocales[$store->getId()])) {
-                        $website = $websiteManager->load($store->getWebsiteId());
-                        $locale = $configReader->getValue('general/locale/code', 'website', $website->getCode());
+                        $website = $this->websiteManager->load($store->getWebsiteId());
+                        $locale = $this->scopeConfig->getValue('general/locale/code', 'website', $website->getCode());
                         $this->storeLocales[$store->getId()] = $locale;
                     }
 
-                    $hrefLangs[str_replace('_', '-', $this->storeLocales[$store->getId()])] = $productRewrites->getUrlPath($product);
+                    $hrefLangs[str_replace('_', '-', $this->storeLocales[$store->getId()])] = $this->urlPathGenerator->getUrlPath($product);
                 } catch (\Exception $e){
-
+                    
                 }
             }
 
