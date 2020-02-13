@@ -115,16 +115,12 @@ class ConfigurableDataExtender {
                     $attributeCode = 'color';
                     $clones[$cloneId]['clone_color_id'] = isset($indexDataItem['color']) ? $indexDataItem['color'] : $indexDataItem['configurable_children'][0]['color'];
                     $clones[$cloneId]['sku'] = $indexDataItem['sku'].'-'.$clones[$cloneId]['clone_color_id'];
-                    $clones[$cloneId]['clone_color_label'] = $this->loadOptionById->execute($attributeCode, $clones[$cloneId]['clone_color_id'], $storeId);
-                    if ( is_string( $clones[$cloneId]['clone_color_label'] ) ) {
-	                    $color_label = $clones[$cloneId]['clone_color_label'];
-                    } else {
-	                   	$color_label = $clones[$cloneId]['clone_color_label']['label'];
-                    }
-                    $clone_color = strtolower(str_ireplace(' ', '-', $color_label));
+                    $clone_color_option = $this->loadOptionById->execute($attributeCode, $clones[$cloneId]['clone_color_id'], $storeId);
+                    $clones[$cloneId]['clone_color_label'] = $clone_color_option['label'];
+                    $clone_color = strtolower(str_ireplace(' ', '-', $clones[$cloneId]['clone_color_label']));
                     $clones[$cloneId]['is_clone'] = 1; // there is no difference now
                     $clones[$cloneId]['url_key'] = $indexDataItem['url_key'].'?color='.$clone_color;
-                    $clones[$cloneId]['clone_name'] = $indexDataItem['name'].' '.$color_label;
+                    $clones[$cloneId]['clone_name'] = $indexDataItem['name'].' '.$clones[$cloneId]['clone_color_label'];
                 } else {
                     $clones[$cloneId]['sku'] = $indexDataItem['sku'];
                 }
