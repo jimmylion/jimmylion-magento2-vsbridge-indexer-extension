@@ -121,6 +121,24 @@ class ConfigurableDataExtender {
                     $clones[$cloneId]['is_clone'] = 1; // there is no difference now
                     $clones[$cloneId]['url_key'] = $indexDataItem['url_key'].'?color='.$clone_color;
                     $clones[$cloneId]['clone_name'] = $indexDataItem['name'].' '.$clones[$cloneId]['clone_color_label'];
+                
+                    // Add attributes
+                    $firstChild = isset($indexDataItem['configurable_children']) ? $indexDataItem['configurable_children'][0] : null;
+                    if ($firstChild) {
+                        if (isset($firstChild['color_group'])) {
+                            $clones[$cloneId]['color_group'] = $firstChild['color_group'];
+                        }
+                        if (isset($firstChild['length'])) {
+                            $clones[$cloneId]['length'] = intval($firstChild['length']);
+                        }
+                        if (isset($firstChild['style'])) {
+                            $clones[$cloneId]['style'] = intval($firstChild['style']);
+                        }
+                        if (isset($firstChild['featured'])) {
+                            $clones[$cloneId]['featured'] = $firstChild['featured'];
+                        }
+                    }
+
                 } else {
                     $clones[$cloneId]['sku'] = $indexDataItem['sku'];
                 }
@@ -138,6 +156,33 @@ class ConfigurableDataExtender {
                         $clones[$cloneId]['is_clone'] = 1;
                         $clones[$cloneId]['url_key'] = $indexDataItem['url_key'].'?color='.$clone_color;
                         $clones[$cloneId]['clone_name'] = $indexDataItem['name'].' '.$color['label'];
+
+                        // Add attributes
+                        $firstChild = null;
+                        foreach ($clones[$cloneId]['configurable_children'] as $child) {
+                            if (!isset($child['color'])) {
+                                continue;
+                            }
+                            if (intval($child['color']) == intval($color['value_index'])) {
+                                $firstChild = $child;
+                                break;
+                            }
+                        }
+
+                        if ($firstChild) {
+                            if (isset($firstChild['color_group'])) {
+                                $clones[$cloneId]['color_group'] = $firstChild['color_group'];
+                            }
+                            if (isset($firstChild['length'])) {
+                                $clones[$cloneId]['length'] = intval($firstChild['length']);
+                            }
+                            if (isset($firstChild['style'])) {
+                                $clones[$cloneId]['style'] = intval($firstChild['style']);
+                            }
+                            if (isset($firstChild['featured'])) {
+                                $clones[$cloneId]['featured'] = $firstChild['featured'];
+                            }
+                        }
                     }
                 }
             }
