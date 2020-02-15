@@ -137,6 +137,17 @@ class ConfigurableDataExtender {
                         if (isset($firstChild['featured'])) {
                             $clones[$cloneId]['featured'] = $firstChild['featured'];
                         }
+                        if (!isset($clones[$cloneId]['talla_options'])) {
+                            $tallaId = isset($firstChild['talla']) ? $firstChild['talla'] : null;
+                            if (!$tallaId && isset($clones[$cloneId]['talla'])) {
+                                $tallaId = isset($clones[$cloneId]['talla']) ? $clones[$cloneId]['talla'] : null;
+                            }
+                            if ($tallaId) {
+                                $clones[$cloneId]['talla_options'] = array(
+                                    $tallaId
+                                );
+                            }
+                        }
                     }
 
                 } else {
@@ -181,6 +192,17 @@ class ConfigurableDataExtender {
                             }
                             if (isset($firstChild['featured'])) {
                                 $clones[$cloneId]['featured'] = $firstChild['featured'];
+                            }
+                            if (!isset($clones[$cloneId]['talla_options'])) {
+                                $tallaId = isset($firstChild['talla']) ? $firstChild['talla'] : null;
+                                if (!$tallaId && isset($clones[$cloneId]['talla'])) {
+                                    $tallaId = isset($clones[$cloneId]['talla']) ? $clones[$cloneId]['talla'] : null;
+                                }
+                                if ($tallaId) {
+                                    $clones[$cloneId]['talla_options'] = array(
+                                        $tallaId
+                                    );
+                                }
                             }
                         }
                     }
