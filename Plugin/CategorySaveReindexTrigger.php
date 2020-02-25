@@ -11,12 +11,29 @@ use Magento\Catalog\Model\Category;
 use Magento\Catalog\Model\Indexer\Category\Product\Processor;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
+use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory as ProductCollectionFactory;
+use Magento\Catalog\Model\Product\Attribute\Source\Status as AttributeSourceStatus;
+use Magento\Catalog\Model\Product\Visibility as ProductVisibility;
 
 /**
  * Checks if a category has changed products and depends on indexer configuration.
  */
 class CategorySaveReindexTrigger implements ObserverInterface
 {
+    protected $productCollectionFactory;
+    protected $productVisibility;
+    protected $productSourceStatus;
+    
+    public function __construct(
+            ProductCollectionFactory $productCollectionFactory,
+            AttributeSourceStatus $productSourceStatus,
+            ProductVisibility $productVisibility
+            ){
+        $this->productCollectionFactory = $productCollectionFactory;
+        $this->productSourceStatus =$productSourceStatus;
+        $this->productVisibility = $productVisibility;
+        
+    }
     /**
      * @inheritdoc
      */
@@ -31,7 +48,6 @@ class CategorySaveReindexTrigger implements ObserverInterface
         if (empty($positions)) {
             return;
         }
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 
         $tmpProductIds = [];
         foreach ($positions as $productId => $position) {
@@ -40,29 +56,19 @@ class CategorySaveReindexTrigger implements ObserverInterface
                 $tmpProductIds[] = $productId;
             }
         }
-
-        $collectionFactory = $objectManager->get('\Magento\Catalog\Model\ResourceModel\Product\CollectionFactory');
-        /* @var $collectionFactory \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory */
-        $productStatus = $objectManager->get('\Magento\Catalog\Model\Product\Attribute\Source\Status');
-        /* @var $productStatus \Magento\Catalog\Model\Product\Attribute\Source\Status */
-        $productVisibility = $objectManager->get('\Magento\Catalog\Model\Product\Visibility');
-        /* @var $productVisibility \Magento\Catalog\Model\Product\Visibility */
-        $collection = $collectionFactory->create();
+        
+        $collection = $this->productCollectionFactory->create();
         if($category->getStoreId() > 0) {
             $collection->setStoreId($category->getStoreId()); //should we implement this ?
         }
-        $collection->addAttributeToFilter('status', ['in' => $productStatus->getVisibleStatusIds()]);
-        $collection->addAttributeToFilter('visibility',['in' => $productVisibility->getVisibleInSiteIds()]);
+        $collection->addAttributeToFilter('status', ['in' => $this->productSourceStatus->getVisibleStatusIds()]);
+        $collection->addAttributeToFilter('visibility',['in' => $this->productVisibility->getVisibleInSiteIds()]);
         $collection->addFieldToFilter('entity_id',['in' => $tmpProductIds]);
 
         foreach($collection as $product){
             /* @var $product Magento\Catalog\Model\Product */
             if ($product) {
-                $product->save();
-                /**
-                 * @TODO: reindex is already called by Product::afterSave ???
-                 * works fast enough, but see if this can also be removed
-                 */
+                //Removed the $product->save() as provokes an out of memory issue, and is not nacessary to update the indexes  
                 $product->reindex();
             }
         }
