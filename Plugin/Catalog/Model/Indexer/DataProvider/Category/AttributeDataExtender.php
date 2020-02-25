@@ -4,8 +4,6 @@ namespace CodingMice\VsBridgeIndexerExtension\Plugin\Catalog\Model\Indexer\DataP
 
 use Divante\VsbridgeIndexerCatalog\Model\Indexer\DataProvider\Category\AttributeData;
 use Magento\Catalog\Api\CategoryRepositoryInterface;
-use Magento\CatalogUrlRewrite\Model\CategoryUrlRewriteGenerator;
-use Magento\Framework\App\ObjectManager;
 use Magento\CatalogUrlRewrite\Model\CategoryUrlPathGenerator;
 
 class AttributeDataExtender {
@@ -14,11 +12,33 @@ class AttributeDataExtender {
 
     /* variable to cache locale for each store */
     private $storeLocales = [];
+    
+    protected $storeManager;
+    protected $websiteManager;
+    protected $categoryUrlPathGenerator;
+    protected $categoryRepository;
+    protected $scopeConfig;
+    
+    public function __construct(
+            \Magento\Store\Model\StoreManager $storeManager,
+            \Magento\Store\Model\Website $websiteManager,
+            CategoryUrlPathGenerator $categoryUrlPathGenerator,
+            CategoryRepositoryInterface $categoryRepository,
+            \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+            ){
+                $this->storeManager = $storeManager;
+                $this->websiteManager = $websiteManager;
+                $this->categoryUrlPathGenerator = $categoryUrlPathGenerator;
+                $this->categoryRepository = $categoryRepository;
+                $this->scopeConfig = $scopeConfig;
+                
+            }
 
     public function beforeAddData(AttributeData $subject, $docs, $storeId){
+
         $this->storeId = $storeId;
     }
-
+    
     /**
      * This method will take ES docs prepared by Divante Extension and modify them
      * before they are added to ES in \Divante\VsbridgeIndexerCore\Indexer\GenericIndexerHandler::saveIndex
@@ -31,36 +51,25 @@ class AttributeDataExtender {
 
     private function addHreflangUrls($indexData)
     {
-        $objectManager = ObjectManager::getInstance();
-        $storeManager = $objectManager->create("\Magento\Store\Model\StoreManager");
-        $stores = $storeManager->getStores();
-        $websiteManager = $objectManager->create("\Magento\Store\Model\Website");
-
-        $categoryRepository = $objectManager->create(CategoryRepositoryInterface::class);
-        /* @var $categoryRepository CategoryRepositoryInterface */
-        $categoryRewrites = $objectManager->create(CategoryUrlPathGenerator::class);
-
-        $configReader = $objectManager->create(\Magento\Framework\App\Config\ScopeConfigInterface::class);
-
+        $stores = $this->storeManager->getStores();
         foreach ($indexData as $categoryId => $indexDataItem) {
             $hrefLangs = [];
 
             foreach($stores as $store){
                 try {
-                    $category = $categoryRepository->get($categoryId, $store->getId());
+                    $category = $this->categoryRepository->get($categoryId, $store->getId());
                     /* @TODO: once approved, move out of this loop */
                     if (!isset($this->storeLocales[$store->getId()])) {
-                        $website = $websiteManager->load($store->getWebsiteId());
-                        $locale = $configReader->getValue('general/locale/code', 'website', $website->getCode());
+                        $website = $this->websiteManager->load($store->getWebsiteId());
+                        $locale = $this->scopeConfig->getValue('general/locale/code', 'website', $website->getCode());
                         $this->storeLocales[$store->getId()] = $locale;
                     }
 
-                    $hrefLangs[str_replace('_', '-', $this->storeLocales[$store->getId()])] = $categoryRewrites->getUrlPath($category);
+                    $hrefLangs[str_replace('_', '-', $this->storeLocales[$store->getId()])] = $this->categoryUrlPathGenerator->getUrlPath($category);
                 } catch (\Exception $e){
-
+                    
                 }
             }
-
             $indexData[$categoryId]['storecode_url_paths'] = $hrefLangs;
         }
         return $indexData;
