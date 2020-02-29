@@ -18,7 +18,7 @@ use Magento\Store\Api\Data\StoreInterface;
 class ConfigurableDataExtender {
 
     public $storeId;
-    
+
     /* @var CategoryResource $categoryResource */
     private $categoryResource;
 
@@ -27,15 +27,15 @@ class ConfigurableDataExtender {
 
     /* variable to cache locale for each store */
     private $storeLocales = [];
-    
+
     private $storeManager;
     private $indexOperations;
     private $websiteManager;
     private $productRepository;
     private $urlPathGenerator;
     private $scopeConfig;
-    
-    public function __construct( 
+
+    public function __construct(
             \Divante\VsbridgeIndexerCatalog\Model\ResourceModel\Product\Category $categoryResource,
             \Divante\VsbridgeIndexerCatalog\Model\Attribute\LoadOptionById $loadOptionById,
             \Divante\VsbridgeIndexerCore\Index\IndexOperations $indexOperations,
@@ -65,15 +65,21 @@ class ConfigurableDataExtender {
      * @see: \Divante\VsbridgeIndexerCatalog\Model\Indexer\DataProvider\Product\ConfigurableData::addData
      */
     public function afterAddData(ConfigurableData $subject, $docs){
+
         $storeId = $this->storeId;
         $docs = $this->extendDataWithGallery($subject, $docs,$storeId);
-            
+
         $docs = $this->addHreflangUrls($docs);
-        
+
         $docs = $this->cloneConfigurableColors($docs,$storeId);
-        
+
         $docs = $this->extendDataWithCategoryNew($docs,$storeId);
-        
+
+        //echo "<pre>";
+        //	print_r($docs);
+        //echo "</pre>";
+        //die();
+
         return $docs;
     }
 
@@ -108,10 +114,13 @@ class ConfigurableDataExtender {
             }
 
             if ( !$has_colors) {
+
                 $cloneId = $this->getIdForClonedItem($indexDataItem);
+
                 $clones[$cloneId] = $indexDataItem;
 
-                if(!empty($indexDataItem['color'])){
+								if ( ! empty($indexDataItem['color'] ) || (isset($indexDataItem['configurable_children'][0]['color']) && $indexDataItem['configurable_children'][0]['color']) ) {
+
                     $attributeCode = 'color';
                     $clones[$cloneId]['clone_color_id'] = isset($indexDataItem['color']) ? $indexDataItem['color'] : $indexDataItem['configurable_children'][0]['color'];
                     $clones[$cloneId]['sku'] = $indexDataItem['sku'].'-'.$clones[$cloneId]['clone_color_id'];
@@ -121,7 +130,7 @@ class ConfigurableDataExtender {
                     $clones[$cloneId]['is_clone'] = 1; // there is no difference now
                     $clones[$cloneId]['url_key'] = $indexDataItem['url_key'].'?color='.$clone_color;
                     $clones[$cloneId]['clone_name'] = $indexDataItem['name'].' '.$clones[$cloneId]['clone_color_label'];
-                
+
                     // Add attributes
                     $firstChild = isset($indexDataItem['configurable_children']) ? $indexDataItem['configurable_children'][0] : null;
                     if ($firstChild) {
@@ -150,12 +159,11 @@ class ConfigurableDataExtender {
                         }
                     }
 
-                } else {
-                    $clones[$cloneId]['sku'] = $indexDataItem['sku'];
                 }
 
 
             } else {
+
                 if(!empty($colors)){
                     foreach ($colors as $color) {
                         $clone_color = strtolower(str_ireplace(' ', '-', $color['label']));
@@ -449,8 +457,10 @@ class ConfigurableDataExtender {
     {
         if (!empty($indexDataItem['color'])) {
             $cloneId = $indexDataItem['id'] . '-' . $indexDataItem['color'];
+        } elseif(isset($indexDataItem['configurable_children'][0]['color'])) {
+            $cloneId = $indexDataItem['id'] . '-' . $indexDataItem['configurable_children'][0]['color'];
         } else {
-            $cloneId = $indexDataItem['id'];
+	        	$cloneId = $indexDataItem['id'];
         }
         return (string) $cloneId;
     }
@@ -458,7 +468,7 @@ class ConfigurableDataExtender {
     private function addHreflangUrls($indexData)
     {
         $stores = $this->storeManager->getStores();
-        
+
         foreach ($indexData as $product_id => $indexDataItem) {
             $hrefLangs = [];
             if ($indexData[$product_id]['type_id'] == 'simple') {
@@ -478,7 +488,7 @@ class ConfigurableDataExtender {
 
                     $hrefLangs[str_replace('_', '-', $this->storeLocales[$store->getId()])] = $this->urlPathGenerator->getUrlPath($product);
                 } catch (\Exception $e){
-                    
+
                 }
             }
 
