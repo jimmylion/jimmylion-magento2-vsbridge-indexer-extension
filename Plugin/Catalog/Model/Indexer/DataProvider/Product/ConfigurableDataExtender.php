@@ -122,7 +122,7 @@ class ConfigurableDataExtender {
 								if ( ! empty($indexDataItem['color'] ) || (isset($indexDataItem['configurable_children'][0]['color']) && $indexDataItem['configurable_children'][0]['color']) ) {
 
                     $attributeCode = 'color';
-                    $clones[$cloneId]['clone_color_id'] = isset($indexDataItem['color']) ? $indexDataItem['color'] : $indexDataItem['configurable_children'][0]['color'];
+                    $clones[$cloneId]['clone_color_id'] = isset($indexDataItem['color']) && is_numeric($indexDataItem['color']) ? $indexDataItem['color'] : $indexDataItem['configurable_children'][0]['color'];
                     $clones[$cloneId]['sku'] = $indexDataItem['sku'].'-'.$clones[$cloneId]['clone_color_id'];
                     $clone_color_option = $this->loadOptionById->execute($attributeCode, $clones[$cloneId]['clone_color_id'], $storeId);
                     $clones[$cloneId]['clone_color_label'] = $clone_color_option['label'];
