@@ -75,11 +75,6 @@ class ConfigurableDataExtender {
 
         $docs = $this->extendDataWithCategoryNew($docs,$storeId);
 
-        //echo "<pre>";
-        //	print_r($docs);
-        //echo "</pre>";
-        //die();
-
         return $docs;
     }
 
@@ -308,7 +303,14 @@ class ConfigurableDataExtender {
 
     private function extendDataWithCategoryNew($indexData,$storeId)
     {
+
+	    $smallest_tallas = array_flip(['4','130','62','102']);
+
         foreach ($indexData as $product_id => $indexDataItem) {
+
+		    if ( !isset($indexDataItem['clone_color_id']) ) {
+				continue;
+	        }
 
             if ($indexData[$product_id]['type_id'] !== 'configurable') {
                 continue;
@@ -339,89 +341,43 @@ class ConfigurableDataExtender {
 
                 foreach($indexData[$product_id]['configurable_children'] as $child_data) {
 
-                    if (!$wasChildInThisColor) {
-                        $wasChildInThisColor = true;
-
-                        $category_data =  $this->getCategoryData($storeId, $child_data['id']);
-                        $indexData[$product_id]['category_new'] = $category_data['category_new'];
-                        $indexData[$product_id]['category'] = $category_data['category'];
-
-                        continue;
-                    } else {
-                        //loop through the children and get the values of the smallest size child with the same color
-                        $categories_data =  $this->getCategoryData($storeId, $child_data['id']);
-                        foreach ($categories_data['category_new'] as $category_id => $valueToCheck) {
-                            if (!isset($indexData[$product_id]['category_new'])) {
-                                // Is it even possible?
-                                continue;
-                            }
-                            $currentValue = isset($indexData[$product_id]['category_new'][$category_id]) ? $indexData[$product_id]['category_new'][$category_id] : 0;
-                            // If new value is 0, do nothing
-                            if ($valueToCheck == 0) {
-                                continue;
-                            }
-                            // If current value is 0, and new is not 0. Set it
-                            if ($currentValue == 0) {
-                                // $clones[$cloneId]['category'][$category_id] = $valueToCheck;
-                                $indexData[$product_id]['category_new'][$category_id] = $valueToCheck;
-                                continue;
-                            }
-
-                            // If both are none 0, compare
-                            if ($valueToCheck < $currentValue) {
-                                // $clones[$cloneId]['category'][$category_id] = $valueToCheck;
-                                $indexData[$product_id]['category_new'][$category_id] = $valueToCheck;
-                                continue;
-                            }
-                        }
+					if ( !isset($smallest_tallas[$child_data['talla']]) ) {
+						continue;
                     }
+
+                    $category_data =  $this->getCategoryData($storeId, $child_data['id']);
+                    $indexData[$product_id]['category_new'] = $category_data['category_new'];
+                    $indexData[$product_id]['category'] = $category_data['category'];
+                    break;
+
                 }
 
             } else {
+
                 if(!empty($colors)){
+
                     foreach ($colors as $color) {
 
-                        $wasChildInThisColor = false;
+                        if ( $color['value_index'] !== $indexDataItem['clone_color_id'] ) {
+                                continue;
+                        }
+
                         //loop through the children and get the values of the smallest size child with the same color
                         foreach($indexData[$product_id]['configurable_children'] as $child_data) {
-                            if(!empty($child_data['color']) && $child_data['color'] == $color['value_index']){
 
-                                if (!$wasChildInThisColor) {
-                                    $wasChildInThisColor = true;
+                            if ( empty($child_data['color']) || $child_data['color'] != $color['value_index'] ) {
+                                continue;
+	                        }
 
-                                    $category_data =  $this->getCategoryData($storeId, $child_data['id']);
-                                    $indexData[$product_id]['category_new'] = $category_data['category_new'];
-                                    $indexData[$product_id]['category'] = $category_data['category'];
-                                    continue;
-                                } else {
-                                    $categories_data =  $this->getCategoryData($storeId, $child_data['id']);
-                                    foreach ($categories_data['category_new'] as $category_id => $valueToCheck) {
-                                        if (!isset($indexData[$product_id]['category_new'])) {
-                                            // Is it even possible?
-                                            continue;
-                                        }
-                                        $currentValue = isset($indexData[$product_id]['category_new'][$category_id]) ? $indexData[$product_id]['category_new'][$category_id] : 0;
-                                        // If new value is 0, do nothing
-                                        if ($valueToCheck == 0) {
-                                            continue;
-                                        }
-                                        // If current value is 0, and new is not 0. Set it
-                                        if ($currentValue == 0) {
-                                            // $clones[$cloneId]['category'][$category_id] = $valueToCheck;
-                                            $indexData[$product_id]['category_new'][$category_id] = $valueToCheck;
-                                            continue;
-                                        }
-
-                                        // If both are none 0, compare
-                                        if ($valueToCheck < $currentValue) {
-                                            // $clones[$cloneId]['category'][$category_id] = $valueToCheck;
-                                            $indexData[$product_id]['category_new'][$category_id] = $valueToCheck;
-                                            continue;
-                                        }
-                                    }
-                                }
-
+							if ( !isset($smallest_tallas[$child_data['talla']]) ) {
+								continue;
                             }
+
+                            $category_data =  $this->getCategoryData($storeId, $child_data['id']);
+                            $indexData[$product_id]['category_new'] = $category_data['category_new'];
+                            $indexData[$product_id]['category'] = $category_data['category'];
+                            break;
+
                         }
 
                     }
