@@ -239,7 +239,7 @@ class ConfigurableDataExtender {
         return $category_data;
     }
 
-    private function extendDataWithGallery(\Divante\VsbridgeIndexerCatalog\Model\Indexer\DataProvider\Product\ConfigurableData $subject, $docs,$storeId)
+    private function extendDataWithGallery(\Divante\VsbridgeIndexerCatalog\Model\Indexer\DataProvider\Product\ConfigurableData $subject, $docs, $storeId)
     {
 
         $store = $this->storeManager->getStore($storeId);
@@ -303,9 +303,15 @@ class ConfigurableDataExtender {
 
     private function extendDataWithCategoryNew($indexData,$storeId)
     {
+        $smallest_tallas = $this->scopeConfig->getValue('vsbridge_indexer_settings/extension_settings/smallest_sizes', 'stores', $storeId);
+        if (empty($smallest_tallas)) {
+            return $indexData;
+        }
 
-        // todo - add setting to magento for this
-        $smallest_tallas = array_flip(['4','130','62','102','5705']);
+        $smallest_tallas = explode(',', str_ireplace(' ', '', $smallest_tallas));
+        if (empty($smallest_tallas_setting)) {
+            return $indexData;
+        }
 
         foreach ($indexData as $product_id => $indexDataItem) {
 

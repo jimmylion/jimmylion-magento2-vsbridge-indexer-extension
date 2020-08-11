@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="vsbridge_indexer_settings">
+            <group id="extension_settings" translate="label" type="text" sortOrder="1000" showInDefault="1" showInWebsite="1" showInStore="1" >
+                <label>Jimmy Lion Extension Settings</label>
+                <depends>
+                    <field id="vsbridge_indexer_settings/general_settings/enable">1</field>
+                </depends>
+                <field id="smallest_sizes" translate="label comment" type="text" sortOrder="11" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Smallest Sizes</label>
+                    <comment>Add the talla (size) attribute ids for the smallest size of each type of sock (separated by commas).  This will be used for the order of the products in lists, where we use position of simple product with smallest size</comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>
