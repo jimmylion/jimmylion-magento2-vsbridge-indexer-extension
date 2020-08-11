@@ -304,7 +304,8 @@ class ConfigurableDataExtender {
     private function extendDataWithCategoryNew($indexData,$storeId)
     {
 
-	    $smallest_tallas = array_flip(['4','130','62','102']);
+        // todo - add setting to magento for this
+        $smallest_tallas = array_flip(['4','130','62','102','5705']);
 
         foreach ($indexData as $product_id => $indexDataItem) {
 
