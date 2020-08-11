@@ -309,9 +309,12 @@ class ConfigurableDataExtender {
         }
 
         $smallest_tallas = explode(',', str_ireplace(' ', '', $smallest_tallas));
-        if (empty($smallest_tallas_setting)) {
+
+        if (empty($smallest_tallas)) {
             return $indexData;
         }
+
+        $smallest_tallas = array_flip($smallest_tallas);
 
         foreach ($indexData as $product_id => $indexDataItem) {
 
