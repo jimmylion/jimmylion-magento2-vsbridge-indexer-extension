@@ -74,8 +74,49 @@ class ConfigurableDataExtender {
         $docs = $this->cloneConfigurableColors($docs,$storeId);
 
         $docs = $this->extendDataWithCategoryNew($docs,$storeId);
+	    
+	$docs = $this->attributeCodesToLabels($docs,$storeId);
 
         return $docs;
+    }
+
+    private function attributeCodesToLabels($indexData,$storeId)
+    {
+
+	foreach ($indexData as $product_id => $indexDataItem) {
+
+		if ($indexDataItem['type_id'] !== 'configurable') {
+	          continue;
+	        }
+
+		$attributes = ['styles', 'pattern'];
+
+		foreach ($attributes as $attr) {
+
+			if (!isset($indexDataItem[$attr])) {
+				continue;
+			}
+
+			if (is_int($indexDataItem[$attr])) {
+				$attributeData = $this->loadOptionById->execute($attr, $indexDataItem[$attr], $storeId);
+				if (!empty($attributeData) && isset($attributeData['label']) && $attributeData['label']) {
+					$indexData[$product_id][$attr.'_label'] = $attributeData['label'];
+				}
+			} elseif (is_array($indexDataItem[$attr]) && !empty($indexDataItem[$attr])) {
+				$multiple_labels = [];
+				foreach ($indexDataItem[$attr] as $option) {
+					$attributeData = $this->loadOptionById->execute($attr, $option, $storeId);
+					if (!empty($attributeData) && isset($attributeData['label']) && $attributeData['label']) {
+						$multiple_labels[] = $attributeData['label'];
+					}
+				}
+				if (!empty($multiple_labels)) {
+					$indexData[$product_id][$attr.'_label'] = join(" ", $multiple_labels);
+				}
+			}
+		}
+	}
+	return $indexData;
     }
 
     private function cloneConfigurableColors($indexData,$storeId)
@@ -114,7 +155,7 @@ class ConfigurableDataExtender {
 
                 $clones[$cloneId] = $indexDataItem;
 
-								if ( ! empty($indexDataItem['color'] ) || (isset($indexDataItem['configurable_children'][0]['color']) && $indexDataItem['configurable_children'][0]['color']) ) {
+		if ( ! empty($indexDataItem['color'] ) || (isset($indexDataItem['configurable_children'][0]['color']) && $indexDataItem['configurable_children'][0]['color']) ) {
 
                     $attributeCode = 'color';
                     $clones[$cloneId]['clone_color_id'] = isset($indexDataItem['color']) && is_numeric($indexDataItem['color']) ? $indexDataItem['color'] : $indexDataItem['configurable_children'][0]['color'];
@@ -318,9 +359,9 @@ class ConfigurableDataExtender {
 
         foreach ($indexData as $product_id => $indexDataItem) {
 
-		    if ( !isset($indexDataItem['clone_color_id']) ) {
-				continue;
-	        }
+	    if ( !isset($indexDataItem['clone_color_id']) ) {
+		continue;
+	    }
 
             if ($indexData[$product_id]['type_id'] !== 'configurable') {
                 continue;
@@ -351,8 +392,8 @@ class ConfigurableDataExtender {
 
                 foreach($indexData[$product_id]['configurable_children'] as $child_data) {
 
-					if ( !isset($smallest_tallas[$child_data['talla']]) ) {
-						continue;
+		    if ( !isset($smallest_tallas[$child_data['talla']]) ) {
+			continue;
                     }
 
                     $category_data =  $this->getCategoryData($storeId, $child_data['id']);
@@ -377,10 +418,10 @@ class ConfigurableDataExtender {
 
                             if ( empty($child_data['color']) || $child_data['color'] != $color['value_index'] ) {
                                 continue;
-	                        }
+	                    }
 
-							if ( !isset($smallest_tallas[$child_data['talla']]) ) {
-								continue;
+			    if ( !isset($smallest_tallas[$child_data['talla']]) ) {
+				continue;
                             }
 
                             $category_data =  $this->getCategoryData($storeId, $child_data['id']);
@@ -426,7 +467,7 @@ class ConfigurableDataExtender {
         } elseif(isset($indexDataItem['configurable_children'][0]['color'])) {
             $cloneId = $indexDataItem['id'] . '-' . $indexDataItem['configurable_children'][0]['color'];
         } else {
-	        	$cloneId = $indexDataItem['id'];
+	    $cloneId = $indexDataItem['id'];
         }
         return (string) $cloneId;
     }
